@@ -5,3 +5,11 @@
 # Xcode-related
 **/dgph
 **/xcuserdata/
+
+.env
+
+# Python virtual environment
+myenv/
+__pycache__/
+*.pyc
+*.pyo

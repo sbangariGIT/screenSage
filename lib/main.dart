@@ -1,125 +1,244 @@
+import 'services/scripts.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:async'; // Import for Timer
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: ScreenshotHome(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
+class ScreenshotHome extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _ScreenshotHomeState createState() => _ScreenshotHomeState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _ScreenshotHomeState extends State<ScreenshotHome> {
+  static const platform = MethodChannel('screenshot_channel');
+  Timer? _timer; // Declare a Timer variable
+  String selectedReport = 'Day 1'; // To keep track of selected report
+  ReportFetcher reportFetcher = ReportFetcher();
+  Map<String, Map<String, dynamic>> reports = {}; // Initialize the reports variable
+  // ignore: non_constant_identifier_names
+  bool fetched_reports = false;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+  List<String> daysOfWeek = [];
+
+  Future<void> _fetchReports() async {
+    try {
+      reports = await reportFetcher.getReports(); // Fetch reports asynchronously
+      setState(() {
+        // Update the state to reflect the fetched reports
+        daysOfWeek = reports.keys.toList();
+        fetched_reports = true;
+        if (daysOfWeek.isNotEmpty) {
+          selectedReport = daysOfWeek[0];
+        }
+      });
+    } catch (e) {
+      print('Error fetching reports: $e');
+    }
+  }
+
+  @override
+  void initState() {
+    _fetchReports(); // Call the function to fetch reports
+    super.initState();
+    // Start the periodic timer to take screenshots every 1 minute
+    _timer = Timer.periodic(Duration(minutes: 1), (timer) {
+      takeScreenshot();
     });
   }
 
   @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+  void dispose() {
+    // Cancel the timer when the widget is disposed
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> takeScreenshot() async {
+    try {
+      final result = await platform.invokeMethod('takeScreenshot');
+      print('Screenshot saved at: $result');
+    } on PlatformException catch (e) {
+      print("Failed to take screenshot: '${e.message}'.");
+    }
+  }
+
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(title: const Text('Tech Usage Report')),
+    body: !fetched_reports 
+        ? Center(child: const CircularProgressIndicator())
+        : Row(
+            children: [
+              // Left Sidebar
+              Container(
+                width: 200,
+                color: Colors.grey[200],
+                child: ListView.builder(
+                  itemCount: daysOfWeek.length,
+                  itemBuilder: (context, index) {
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: ListTile(
+                        title: Text(daysOfWeek[index]),
+                        selected: selectedReport == daysOfWeek[index],
+                        onTap: () {
+                          setState(() {
+                            selectedReport = daysOfWeek[index];
+                          });
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              // Right Report Display
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: buildReportContent(reports[selectedReport]),
+                  ),
+                ),
+              ),
+            ],
+          ),
+  );
+}
+
+// Function to build the report content
+Widget buildReportContent(Map<String, dynamic>? report) {
+  if (report == null) {
+    return const Center(child: Text('No report available.'));
+  }
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        'Content Analysis',
+        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+      const SizedBox(height: 10),
+      // TODO: Will add an image of the word cloud here
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(report["content_analysis"]["summary"]),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
-  }
+      const SizedBox(height: 20),
+      
+      _buildSectionTitle('Problematic Usage Patterns'),
+      ...report["problematic_usage_patterns"]["issues"]
+          .map<Widget>((issue) => _buildIssueCard(issue))
+          .toList(),
+      const SizedBox(height: 20),
+      
+      _buildSectionTitle('Positive Usage Patterns'),
+      ...report["positive_usage"]["patterns"]
+          .map<Widget>((issue) => _buildPatternCard(issue))
+          .toList(),
+      
+      const SizedBox(height: 20),
+      _buildSectionTitle('Recommendations'),
+      ...report["recommendations"]["suggestions"]
+          .map<Widget>((issue) => _buildRecommendationCard(issue))
+          .toList(),
+    ],
+  );
+}
+
+// Function to build section titles
+Widget _buildSectionTitle(String title) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Row(
+      children: [
+        Icon(Icons.report, size: 20, color: Colors.blue),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+      ],
+    ),
+  );
+}
+
+// Function to build issue card
+Widget _buildIssueCard(Map<String, dynamic> issue) {
+  return Card(
+    margin: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            issue["issue"],
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 5),
+          Text(issue["description"]),
+        ],
+      ),
+    ),
+  );
+}
+
+// Function to build pattern card
+Widget _buildPatternCard(Map<String, dynamic> issue) {
+  return Card(
+    margin: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            issue["pattern"],
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 5),
+          Text(issue["description"]),
+        ],
+      ),
+    ),
+  );
+}
+
+// Function to build recommendation card
+Widget _buildRecommendationCard(Map<String, dynamic> issue) {
+  return Card(
+    margin: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            issue["recommendation"],
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 5),
+          Text(issue["details"]),
+        ],
+      ),
+    ),
+  );
+}
 }

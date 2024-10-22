@@ -1,0 +1,5 @@
+openai
+tiktoken
+wordcloud
+Pillow
+python-dotenv
