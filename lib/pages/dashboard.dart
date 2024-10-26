@@ -1,6 +1,5 @@
 import '../services/scripts.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'dart:async'; // Import for Timer
 
 class ScreenshotHome extends StatefulWidget {
@@ -9,8 +8,6 @@ class ScreenshotHome extends StatefulWidget {
 }
 
 class _ScreenshotHomeState extends State<ScreenshotHome> {
-  static const platform = MethodChannel('screenshot_channel');
-  Timer? _timer; // Declare a Timer variable
   String selectedReport = 'Day 1'; // To keep track of selected report
   ReportFetcher reportFetcher = ReportFetcher();
   Map<String, Map<String, dynamic>> reports = {}; // Initialize the reports variable
@@ -39,26 +36,12 @@ class _ScreenshotHomeState extends State<ScreenshotHome> {
   void initState() {
     _fetchReports(); // Call the function to fetch reports
     super.initState();
-    // Start the periodic timer to take screenshots every 1 minute
-    _timer = Timer.periodic(Duration(minutes: 1), (timer) {
-      takeScreenshot();
-    });
   }
 
   @override
   void dispose() {
     // Cancel the timer when the widget is disposed
-    _timer?.cancel();
     super.dispose();
-  }
-
-  Future<void> takeScreenshot() async {
-    try {
-      final result = await platform.invokeMethod('takeScreenshot');
-      print('Screenshot saved at: $result');
-    } on PlatformException catch (e) {
-      print("Failed to take screenshot: '${e.message}'.");
-    }
   }
 
 @override
