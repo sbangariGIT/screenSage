@@ -35,7 +35,7 @@ class ReportFetcher {
               // Read and parse the report.json file
               String reportContent = await reportFile.readAsString();
               Map<String, dynamic> reportJson = jsonDecode(reportContent);
-
+              // reportJson['world_cloud'] = '${dateDir.path}/report.json';
               // Add to the final structure, where the key is the date, and the value is the parsed JSON
               reportsMap[date] = reportJson;
             }

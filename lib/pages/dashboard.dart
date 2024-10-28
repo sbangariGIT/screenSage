@@ -2,12 +2,15 @@ import '../services/scripts.dart';
 import 'package:flutter/material.dart';
 import 'dart:async'; // Import for Timer
 
-class ScreenshotHome extends StatefulWidget {
+class DashboardPage extends StatefulWidget {
+  const DashboardPage({super.key});
+
   @override
-  _ScreenshotHomeState createState() => _ScreenshotHomeState();
+  // ignore: library_private_types_in_public_api
+  _DashboardPageState createState() => _DashboardPageState();
 }
 
-class _ScreenshotHomeState extends State<ScreenshotHome> {
+class _DashboardPageState extends State<DashboardPage> {
   String selectedReport = 'Day 1'; // To keep track of selected report
   ReportFetcher reportFetcher = ReportFetcher();
   Map<String, Map<String, dynamic>> reports = {}; // Initialize the reports variable
@@ -47,9 +50,8 @@ class _ScreenshotHomeState extends State<ScreenshotHome> {
 @override
 Widget build(BuildContext context) {
   return Scaffold(
-    appBar: AppBar(title: const Text('Tech Usage Report')),
     body: !fetched_reports 
-        ? Center(child: const CircularProgressIndicator())
+        ? const Center(child: CircularProgressIndicator())
         : Row(
             children: [
               // Left Sidebar

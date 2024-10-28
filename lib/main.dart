@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:screensage/pages/dashboard.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:flutter/services.dart'; // For SystemNavigator.pop()
 import 'dart:io';
@@ -44,40 +45,47 @@ class _MyAppState extends State<MyApp> with TrayListener {
     }
   }
 
-  Future<void> initTray() async {
-    // Initialize the tray manager
-    await trayManager.setIcon(
-      Platform.isWindows
-          ? 'assets/icons/tray-icon.ico'
-          : 'assets/icons/tray-icon.png',
-    );
-    Menu menu = Menu(
-      items: [
-        MenuItem(
-          key: 'show_window',
-          label: 'Show Dashboard',
-        ),
-        MenuItem(
-          key: 'start',
-          label: 'Start Monitoring',
-          disabled: monitoring,
-        ),
-        MenuItem(
-          key: 'pause',
-          label: 'Pause Monitoring',
-          disabled: !monitoring,
-        ),
-        MenuItem.separator(),
-        MenuItem(
-          key: 'exit_app',
-          label: 'Exit App',
-        ),
-      ],
-    );
-    await trayManager.setContextMenu(menu);
+Future<void> initTray() async {
+  // Initialize the tray manager
+  await trayManager.setIcon(
+    Platform.isWindows
+        ? 'assets/icons/tray-icon.ico'
+        : 'assets/icons/tray-icon.png',
+  );
 
-    trayManager.addListener(this);
-  }
+  // Generate the initial tray menu
+  await _setTrayMenu();
+
+  trayManager.addListener(this);
+}
+
+// Method to set or update the tray menu
+Future<void> _setTrayMenu() async {
+  Menu menu = Menu(
+    items: [
+      MenuItem(
+        key: 'show_window',
+        label: 'Show Dashboard',
+      ),
+      MenuItem(
+        key: 'start',
+        label: 'Start Monitoring',
+        disabled: monitoring, // Disabled if monitoring is true
+      ),
+      MenuItem(
+        key: 'pause',
+        label: 'Pause Monitoring',
+        disabled: !monitoring, // Disabled if monitoring is false
+      ),
+      MenuItem.separator(),
+      MenuItem(
+        key: 'exit_app',
+        label: 'Exit App',
+      ),
+    ],
+  );
+  await trayManager.setContextMenu(menu);
+}
 
   @override
   void dispose() {
@@ -89,11 +97,10 @@ class _MyAppState extends State<MyApp> with TrayListener {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
-        appBar: AppBar(title: const Text('Tray Manager Example')),
-        body: const Center(
-          child: Text('Right-click the tray icon to interact with the app'),
-        ),
+        appBar: AppBar(title: const Text('Welcome to ScreenSage Dashboard')),
+        body: const DashboardPage(),  // Replace the current body with DashboardPage
       ),
     );
   }
@@ -122,9 +129,11 @@ void onTrayIconMouseDown() {
         // Show the app when "Show Window" is clicked
         if (!monitoring) {
           print('Started taking screenshots!');
-          monitoring = true; // Set the state to true
           _startScreenshotTimer();
-          initTray();
+          setState(() {
+            monitoring = true; // Set the state to true
+            _setTrayMenu();
+          });
         }
         
         break;
@@ -133,8 +142,10 @@ void onTrayIconMouseDown() {
         if (monitoring) {
           print('pause the screenshoting!');
           _stopScreenshotTimer();
-          monitoring = false; // Set the state to false
-          initTray();
+          setState(() {
+            monitoring = false; // Set the state to false
+            _setTrayMenu();
+          });
         }
         break;
       case 'exit_app':
