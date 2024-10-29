@@ -99,7 +99,7 @@ Future<void> _setTrayMenu() async {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        appBar: AppBar(title: const Text('Welcome to ScreenSage Dashboard')),
+        appBar: AppBar(title: const Text('Welcome to Screen Sage Dashboard')),
         body: const DashboardPage(),  // Replace the current body with DashboardPage
       ),
     );
