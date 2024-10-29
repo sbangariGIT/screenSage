@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:screensage/pages/dashboard.dart';
+import 'package:screensage/pages/splash.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:flutter/services.dart'; // For SystemNavigator.pop()
 import 'dart:io';
@@ -110,8 +111,7 @@ class _MyAppState extends State<MyApp> with TrayListener, WindowListener {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        appBar: AppBar(title: const Text('Welcome to Screen Sage Dashboard')),
-        body: const DashboardPage(),
+        body: SplashScreen(),
       ),
     );
   }
