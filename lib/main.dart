@@ -4,8 +4,12 @@ import 'package:tray_manager/tray_manager.dart';
 import 'package:flutter/services.dart'; // For SystemNavigator.pop()
 import 'dart:io';
 import 'dart:async'; // Import for Timer
+import 'package:window_manager/window_manager.dart'; // For window control
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+    // Initialize the window manager (required to control the app window)
+  await windowManager.ensureInitialized();
   runApp(MyApp());
 }
 
@@ -14,7 +18,7 @@ class MyApp extends StatefulWidget {
   _MyAppState createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> with TrayListener {
+class _MyAppState extends State<MyApp> with TrayListener, WindowListener {
   static const platform = MethodChannel('screenshot_channel');
   Timer? _timer; // Declare a Timer variable
   bool monitoring = false; // Variable to track screenshotting state
@@ -23,6 +27,7 @@ class _MyAppState extends State<MyApp> with TrayListener {
   void initState() {
     super.initState();
     initTray();
+    initWindowsManager();
   }
 
   void _startScreenshotTimer() {
@@ -45,53 +50,59 @@ class _MyAppState extends State<MyApp> with TrayListener {
     }
   }
 
-Future<void> initTray() async {
-  // Initialize the tray manager
-  await trayManager.setIcon(
-    Platform.isWindows
-        ? 'assets/icons/tray-icon.ico'
-        : 'assets/icons/tray-icon.png',
-  );
+  initWindowsManager() {
+    windowManager.addListener(this);
+  }
 
-  // Generate the initial tray menu
-  await _setTrayMenu();
+  Future<void> initTray() async {
+    // Initialize the tray manager
+    await trayManager.setIcon(
+      Platform.isWindows
+          ? 'assets/icons/tray-icon.ico'
+          : 'assets/icons/tray-icon.png',
+    );
 
-  trayManager.addListener(this);
-}
+    // Generate the initial tray menu
+    await _setTrayMenu();
 
-// Method to set or update the tray menu
-Future<void> _setTrayMenu() async {
-  Menu menu = Menu(
-    items: [
-      MenuItem(
-        key: 'show_window',
-        label: 'Show Dashboard',
-      ),
-      MenuItem(
-        key: 'start',
-        label: 'Start Monitoring',
-        disabled: monitoring, // Disabled if monitoring is true
-      ),
-      MenuItem(
-        key: 'pause',
-        label: 'Pause Monitoring',
-        disabled: !monitoring, // Disabled if monitoring is false
-      ),
-      MenuItem.separator(),
-      MenuItem(
-        key: 'exit_app',
-        label: 'Exit App',
-      ),
-    ],
-  );
-  await trayManager.setContextMenu(menu);
-}
+    trayManager.addListener(this);
+  }
+
+  // Method to set or update the tray menu
+  Future<void> _setTrayMenu() async {
+    Menu menu = Menu(
+      items: [
+        MenuItem(
+          key: 'show_window',
+          label: 'Show Dashboard',
+        ),
+        MenuItem(
+          key: 'start',
+          label: 'Start Monitoring',
+          disabled: monitoring, // Disabled if monitoring is true
+        ),
+        MenuItem(
+          key: 'pause',
+          label: 'Pause Monitoring',
+          disabled: !monitoring, // Disabled if monitoring is false
+        ),
+        MenuItem.separator(),
+        MenuItem(
+          key: 'exit_app',
+          label: 'Exit App',
+        ),
+      ],
+    );
+    await trayManager.setContextMenu(menu);
+  }
 
   @override
   void dispose() {
     trayManager.removeListener(this);
+    windowManager.removeListener(this);
     super.dispose();
     _timer?.cancel();
+    print("Why am I being called?");
   }
 
   @override
@@ -100,15 +111,15 @@ Future<void> _setTrayMenu() async {
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(title: const Text('Welcome to Screen Sage Dashboard')),
-        body: const DashboardPage(),  // Replace the current body with DashboardPage
+        body: const DashboardPage(),
       ),
     );
   }
 
-@override
-void onTrayIconMouseDown() {
-  trayManager.popUpContextMenu(); // Open the context menu
-}
+  @override
+  void onTrayIconMouseDown() {
+    trayManager.popUpContextMenu(); // Open the context menu
+  }
 
   void quitApp() {
     if (Platform.isAndroid || Platform.isIOS) {
@@ -122,11 +133,14 @@ void onTrayIconMouseDown() {
   void onTrayMenuItemClick(MenuItem menuItem) {
     switch (menuItem.key) {
       case 'show_window':
-        // Show the app when "Show Window" is clicked
+        // Show the app window when "Show Dashboard" is clicked
         print('Show Window clicked');
+        windowManager.setSkipTaskbar(false);
+        windowManager.show();
+        windowManager.focus();
         break;
       case 'start':
-        // Show the app when "Show Window" is clicked
+        // Start screenshot monitoring
         if (!monitoring) {
           print('Started taking screenshots!');
           _startScreenshotTimer();
@@ -135,12 +149,11 @@ void onTrayIconMouseDown() {
             _setTrayMenu();
           });
         }
-        
         break;
       case 'pause':
-        // Show the app when "Show Window" is clicked
+        // Pause screenshot monitoring
         if (monitoring) {
-          print('pause the screenshoting!');
+          print('Paused screenshotting!');
           _stopScreenshotTimer();
           setState(() {
             monitoring = false; // Set the state to false
@@ -152,7 +165,15 @@ void onTrayIconMouseDown() {
         // Exit the app when "Exit App" is clicked
         quitApp();
         trayManager.destroy();
+        windowManager.destroy();
         break;
     }
+  }
+
+  @override
+  void onWindowClose() async {
+    // Prevent the window from closing, hide it instead
+    await windowManager.hide();
+    await windowManager.setSkipTaskbar(true);
   }
 }
