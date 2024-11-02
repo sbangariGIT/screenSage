@@ -38,6 +38,7 @@ dependencies:
   tray_manager: ^0.2.4
   flutter_launcher_icons: ^0.14.1
   window_manager: ^0.4.3
+  percent_indicator: ^4.2.3
 
 dev_dependencies:
   flutter_test:

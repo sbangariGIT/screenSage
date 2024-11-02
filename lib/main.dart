@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:screensage/pages/dashboard.dart';
 import 'package:screensage/pages/splash.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:flutter/services.dart'; // For SystemNavigator.pop()
@@ -11,11 +10,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
     // Initialize the window manager (required to control the app window)
   await windowManager.ensureInitialized();
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
   @override
+  // ignore: library_private_types_in_public_api
   _MyAppState createState() => _MyAppState();
 }
 
@@ -45,8 +47,10 @@ class _MyAppState extends State<MyApp> with TrayListener, WindowListener {
   Future<void> takeScreenshot() async {
     try {
       final result = await platform.invokeMethod('takeScreenshot');
+      // ignore: avoid_print
       print('Screenshot saved at: $result');
     } on PlatformException catch (e) {
+      // ignore: avoid_print
       print("Failed to take screenshot: '${e.message}'.");
     }
   }
@@ -103,14 +107,20 @@ class _MyAppState extends State<MyApp> with TrayListener, WindowListener {
     windowManager.removeListener(this);
     super.dispose();
     _timer?.cancel();
-    print("Why am I being called?");
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
+      title: 'Scre',
+      theme: ThemeData.dark().copyWith(
+        primaryColor: Colors.teal,
+        scaffoldBackgroundColor: Colors.black,
+        appBarTheme: const AppBarTheme(
+          foregroundColor: Colors.white,
+        )),
+      home: const Scaffold(
         body: SplashScreen(),
       ),
     );
@@ -134,6 +144,7 @@ class _MyAppState extends State<MyApp> with TrayListener, WindowListener {
     switch (menuItem.key) {
       case 'show_window':
         // Show the app window when "Show Dashboard" is clicked
+        // ignore: avoid_print
         print('Show Window clicked');
         windowManager.setSkipTaskbar(false);
         windowManager.show();
@@ -142,6 +153,7 @@ class _MyAppState extends State<MyApp> with TrayListener, WindowListener {
       case 'start':
         // Start screenshot monitoring
         if (!monitoring) {
+          // ignore: avoid_print
           print('Started taking screenshots!');
           _startScreenshotTimer();
           setState(() {
@@ -153,6 +165,7 @@ class _MyAppState extends State<MyApp> with TrayListener, WindowListener {
       case 'pause':
         // Pause screenshot monitoring
         if (monitoring) {
+          // ignore: avoid_print
           print('Paused screenshotting!');
           _stopScreenshotTimer();
           setState(() {

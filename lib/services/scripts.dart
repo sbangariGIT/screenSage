@@ -35,16 +35,18 @@ class ReportFetcher {
               // Read and parse the report.json file
               String reportContent = await reportFile.readAsString();
               Map<String, dynamic> reportJson = jsonDecode(reportContent);
-              // reportJson['world_cloud'] = '${dateDir.path}/report.json';
+              reportJson['world_cloud'] = '${dateDir.path}/output.png';
               // Add to the final structure, where the key is the date, and the value is the parsed JSON
               reportsMap[date] = reportJson;
             }
           }
         }
       } else {
+        // ignore: avoid_print
         print('Reports directory does not exist');
       }
     } catch (e) {
+      // ignore: avoid_print
       print('Error fetching reports: $e');
     }
     return reportsMap;

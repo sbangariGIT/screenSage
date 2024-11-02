@@ -29,9 +29,18 @@ class AppDelegate: FlutterAppDelegate {
         let displayID = CGMainDisplayID()
         if let screenshot = CGDisplayCreateImage(displayID) {
             let formatter = DateFormatter()
+        
+            // Create folder based on today's date in yyyy-MM-dd format
+            formatter.dateFormat = "yyyy-MM-dd"
+            let dateFolder = formatter.string(from: Date())
+            let folderPath = "\(NSTemporaryDirectory())\(dateFolder)/tmp/"
+        
+            // Ensure the folder exists
+            try? FileManager.default.createDirectory(atPath: folderPath, withIntermediateDirectories: true, attributes: nil)
+
             formatter.dateFormat = "yyyyMMdd_HHmmss"
             let timestamp = formatter.string(from: Date())
-            let filePath = "\(NSTemporaryDirectory())\(timestamp).png"
+            let filePath = "\(folderPath)\(timestamp).png"
             let url = URL(fileURLWithPath: filePath)
 
             if let destination = CGImageDestinationCreateWithURL(url as CFURL, kUTTypePNG, 1, nil) {
